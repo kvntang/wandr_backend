@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Friending, Posting, Sessioning } from "./app";
+import { Authing, Commenting, Friending, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -15,12 +15,27 @@ import { z } from "zod";
 class Routes {
   // Synchronize the concepts from `app.ts`.
 
+  //////////////////// Session ////////////////////////////////////////
   @Router.get("/session")
   async getSessionUser(session: SessionDoc) {
     const user = Sessioning.getUser(session);
     return await Authing.getUserById(user);
   }
 
+  @Router.post("/login")
+  async logIn(session: SessionDoc, username: string, password: string) {
+    const u = await Authing.authenticate(username, password);
+    Sessioning.start(session, u._id);
+    return { msg: "Logged in!" };
+  }
+
+  @Router.post("/logout")
+  async logOut(session: SessionDoc) {
+    Sessioning.end(session);
+    return { msg: "Logged out!" };
+  }
+
+  //////////////////// Authenticate ////////////////////////////////////////
   @Router.get("/users")
   async getUsers() {
     return await Authing.getUsers();
@@ -57,19 +72,7 @@ class Routes {
     return await Authing.delete(user);
   }
 
-  @Router.post("/login")
-  async logIn(session: SessionDoc, username: string, password: string) {
-    const u = await Authing.authenticate(username, password);
-    Sessioning.start(session, u._id);
-    return { msg: "Logged in!" };
-  }
-
-  @Router.post("/logout")
-  async logOut(session: SessionDoc) {
-    Sessioning.end(session);
-    return { msg: "Logged out!" };
-  }
-
+  //////////////////// Post ////////////////////////////////////////
   @Router.get("/posts")
   @Router.validate(z.object({ author: z.string().optional() }))
   async getPosts(author?: string) {
@@ -106,6 +109,7 @@ class Routes {
     return Posting.delete(oid);
   }
 
+  //////////////////// Friend ////////////////////////////////////////
   @Router.get("/friends")
   async getFriends(session: SessionDoc) {
     const user = Sessioning.getUser(session);
@@ -151,6 +155,45 @@ class Routes {
     const user = Sessioning.getUser(session);
     const fromOid = (await Authing.getUserByUsername(from))._id;
     return await Friending.rejectRequest(fromOid, user);
+  }
+
+  //////////////////// Comment ////////////////////////////////////////
+  @Router.get("/comments")
+  @Router.validate(z.object({ postId: z.string().optional() }))
+  async getComments(postId?: string) {
+    let comments;
+    if (postId) {
+      const postOid = new ObjectId(postId);
+      comments = await Commenting.getByPost(postOid);
+    } else {
+      comments = await Commenting.getComments();
+    }
+
+    return Responses.comments(comments);
+  }
+
+  @Router.post("/comments")
+  async createComment(session: SessionDoc, postId: string, content: string) {
+    const user = Sessioning.getUser(session);
+    const postOid = new ObjectId(postId);
+    const created = await Commenting.create(user, postOid, content);
+    return { msg: created.msg, comment: await Responses.comment(created.comment) };
+  }
+
+  @Router.patch("/comments/:id")
+  async updateComment(session: SessionDoc, id: string, content: string) {
+    const user = Sessioning.getUser(session);
+    const oid = new ObjectId(id);
+    await Commenting.assertAuthorIsUser(oid, user);
+    return await Commenting.update(oid, content);
+  }
+
+  @Router.delete("/comments/:id")
+  async deleteComment(session: SessionDoc, id: string) {
+    const user = Sessioning.getUser(session);
+    const oid = new ObjectId(id);
+    await Commenting.assertAuthorIsUser(oid, user);
+    return await Commenting.delete(oid);
   }
 }
 

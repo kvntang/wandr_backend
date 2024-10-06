@@ -14,17 +14,12 @@ type Operation = {
  * This list of operations is used to generate the manual testing UI.
  */
 const operations: Operation[] = [
+  //////////////////// Session ////////////////////////////////////////
   {
     name: "Get Session User (logged in user)",
     endpoint: "/api/session",
     method: "GET",
     fields: {},
-  },
-  {
-    name: "Create User",
-    endpoint: "/api/users",
-    method: "POST",
-    fields: { username: "input", password: "input" },
   },
   {
     name: "Login",
@@ -37,6 +32,13 @@ const operations: Operation[] = [
     endpoint: "/api/logout",
     method: "POST",
     fields: {},
+  },
+  //////////////////// Authenticate ////////////////////////////////////////
+  {
+    name: "Create User",
+    endpoint: "/api/users",
+    method: "POST",
+    fields: { username: "input", password: "input" },
   },
   {
     name: "Update Password",
@@ -56,6 +58,7 @@ const operations: Operation[] = [
     method: "GET",
     fields: { username: "input" },
   },
+  //////////////////// Post ////////////////////////////////////////
   {
     name: "Get Posts (empty for all)",
     endpoint: "/api/posts",
@@ -80,6 +83,33 @@ const operations: Operation[] = [
     method: "DELETE",
     fields: { id: "input" },
   },
+  //////////////////// Comment ////////////////////////////////////////
+  {
+    name: "Comment",
+    endpoint: "/api/comments",
+    method: "POST",
+    fields: { postId: "input", content: "input" },
+  },
+  {
+    name: "Edit Comment",
+    endpoint: "/api/comments/:id",
+    method: "PATCH",
+    fields: { id: "input", content: "input" },
+  },
+  {
+    name: "Delete Comment",
+    endpoint: "/api/comments/:id",
+    method: "DELETE",
+    fields: { id: "input" },
+  },
+  {
+    name: "Get Comments (empty for all)",
+    endpoint: "/api/comments",
+    method: "GET",
+    fields: { postId: "input" }, // Optional: Fetch by postId, or fetch all comments if not provided
+  },
+
+  //////////////////// Friend ////////////////////////////////////////
   //
   // ...
   //
