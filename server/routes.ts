@@ -86,7 +86,7 @@ class Routes {
     return Responses.posts(posts);
   }
 
-  @Router.get("/posts/:id")
+  @Router.get("/posts/single/:id")
   async getPost(id: string) {
     const postOid = new ObjectId(id); //convert from String
     await Posting.assertPostExist(postOid);

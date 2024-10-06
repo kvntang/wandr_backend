@@ -67,7 +67,7 @@ const operations: Operation[] = [
   },
   {
     name: "See Post Photo",
-    endpoint: "/api/posts/:id",
+    endpoint: "/api/posts/single/:id",
     method: "GET",
     fields: { id: "input" },
   },
