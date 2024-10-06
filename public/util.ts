@@ -66,6 +66,12 @@ const operations: Operation[] = [
     fields: { author: "input" },
   },
   {
+    name: "See Post Photo",
+    endpoint: "/api/posts/:id",
+    method: "GET",
+    fields: { id: "input" },
+  },
+  {
     name: "Create Post",
     endpoint: "/api/posts",
     method: "POST",
@@ -110,6 +116,20 @@ const operations: Operation[] = [
   },
 
   //////////////////// Friend ////////////////////////////////////////
+
+  //////////////////// Auto Captioning ////////////////////////////////////
+  {
+    name: "AutoCaption",
+    endpoint: "/api/autocaptions",
+    method: "POST",
+    fields: { postId: "input" }, // Optional: Fetch by postId, or fetch all comments if not provided
+  },
+  {
+    name: "Get AutoCaptions (empty for all)",
+    endpoint: "/api/autocaptions",
+    method: "GET",
+    fields: { postId: "input" }, // Optional: Fetch by postId, or fetch all comments if not provided
+  },
   //
   // ...
   //
@@ -347,7 +367,15 @@ async function submitEventHandler(e: Event) {
 
   updateResponse("", "Loading...");
   const response = await request($method as HttpMethod, endpoint as string, data);
-  updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
+
+  // Only trigger the photo display for the "See Post Photo" operation
+  if (op?.name === "See Post Photo") {
+    displayResponse(response.$response);
+    updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
+  } else {
+    // Handle other responses normally (if you need to handle differently)
+    updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -363,4 +391,46 @@ function fileToBase64(file: File): Promise<string> {
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = (error) => reject(error);
   });
+}
+
+function displayResponse(response: any) {
+  console.log("Response received:", response); // Log the response to inspect the structure
+
+  const pictureContainer = document.querySelector("#picture-container");
+
+  if (!pictureContainer) {
+    console.error("Picture container not found!");
+    return;
+  }
+
+  // Clear previous response
+  pictureContainer.innerHTML = "";
+
+  // Check if the response is an array and access the first post
+  const post = Array.isArray(response) && response.length > 0 ? response[0] : null;
+
+  // Create a div to display the content and photo
+  const contentDiv = document.createElement("div");
+
+  if (!post) {
+    contentDiv.innerHTML = "<p>No post available.</p>";
+    pictureContainer.appendChild(contentDiv);
+    return;
+  }
+
+  contentDiv.innerHTML = `<p>Content: ${post.content ?? "No content available"}</p>`;
+
+  // If there's a photo, display it
+  if (post.photo) {
+    const img = document.createElement("img");
+    img.src = post.photo; // Directly use the base64 string with the "data:image/..." prefix
+    img.alt = "Uploaded Image";
+    img.style.maxWidth = "300px"; // You can adjust the size
+    contentDiv.appendChild(img);
+  } else {
+    contentDiv.innerHTML += "<p>No photo available.</p>";
+  }
+
+  // Append the contentDiv to the responseContainer
+  pictureContainer.appendChild(contentDiv);
 }
