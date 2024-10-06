@@ -11,6 +11,7 @@ export interface PostDoc extends BaseDoc {
   author: ObjectId;
   content: string;
   options?: PostOptions;
+  photo?: string; // Added the new field for the photo (Base64 string)
 }
 
 /**
@@ -26,8 +27,16 @@ export default class PostingConcept {
     this.posts = new DocCollection<PostDoc>(collectionName);
   }
 
-  async create(author: ObjectId, content: string, options?: PostOptions) {
-    const _id = await this.posts.createOne({ author, content, options });
+  // async create(author: ObjectId, content: string, options?: PostOptions) {
+  //   const _id = await this.posts.createOne({ author, content, options });
+  //   return { msg: "Post successfully created!", post: await this.posts.readOne({ _id }) };
+  // }
+
+  async create(author: ObjectId, content: string, options?: PostOptions, photo?: string) {
+    // console.log("Document to be created:", { author, content, options, photo }); // Log the document
+
+    // Add the photo (Base64) directly into the document if provided
+    const _id = await this.posts.createOne({ author, content, options, photo });
     return { msg: "Post successfully created!", post: await this.posts.readOne({ _id }) };
   }
 

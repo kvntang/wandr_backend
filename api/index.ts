@@ -18,8 +18,12 @@ app.use(logger("dev"));
 
 app.use(cors()); // https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 
-app.use(express.json()); // Enable parsing JSON in requests and responses.
-app.use(express.urlencoded({ extended: false })); // Also enable URL encoded request and responses.
+// app.use(express.json()); // Enable parsing JSON in requests and responses.
+// app.use(express.urlencoded({ extended: false })); // Also enable URL encoded request and responses.
+
+// Increase the size limits for JSON and URL-encoded payloads
+app.use(express.json({ limit: "50mb" })); // Increase JSON body size limit to 50MB
+app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Increase URL-encoded body size limit to 50MB
 
 // Session allows us to store a cookie 🍪.
 app.use(

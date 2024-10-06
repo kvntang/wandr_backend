@@ -1,5 +1,5 @@
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-type InputTag = "input" | "textarea" | "json";
+type InputTag = "input" | "textarea" | "json" | "file";
 type Field = InputTag | { [key: string]: Field };
 type Fields = Record<string, Field>;
 
@@ -69,7 +69,7 @@ const operations: Operation[] = [
     name: "Create Post",
     endpoint: "/api/posts",
     method: "POST",
-    fields: { content: "input" },
+    fields: { content: "input", photo: "file" },
   },
   {
     name: "Update Post",
@@ -154,10 +154,24 @@ async function request(method: HttpMethod, endpoint: string, params?: unknown) {
   }
 }
 
+// function fieldsToHtml(fields: Record<string, Field>, indent = 0, prefix = ""): string {
+//   return Object.entries(fields)
+//     .map(([name, tag]) => {
+//       const htmlTag = tag === "json" ? "textarea" : tag;
+//       return `
+//         <div class="field" style="margin-left: ${indent}px">
+//           <label>${name}:
+//           ${typeof tag === "string" ? `<${htmlTag} name="${prefix}${name}"></${htmlTag}>` : fieldsToHtml(tag, indent + 10, prefix + name + ".")}
+//           </label>
+//         </div>`;
+//     })
+//     .join("");
+// }
+
 function fieldsToHtml(fields: Record<string, Field>, indent = 0, prefix = ""): string {
   return Object.entries(fields)
     .map(([name, tag]) => {
-      const htmlTag = tag === "json" ? "textarea" : tag;
+      const htmlTag = tag === "json" ? "textarea" : tag === "file" ? "input type='file'" : tag;
       return `
         <div class="field" style="margin-left: ${indent}px">
           <label>${name}:
@@ -202,6 +216,95 @@ function prefixedRecordIntoObject(record: Record<string, string>) {
   return obj;
 }
 
+//original
+
+// async function submitEventHandler(e: Event) {
+//   e.preventDefault();
+//   const form = e.target as HTMLFormElement;
+//   const { $method, $endpoint, ...reqData } = Object.fromEntries(new FormData(form));
+
+//   // Replace :param with the actual value.
+//   const endpoint = ($endpoint as string).replace(/:(\w+)/g, (_, key) => {
+//     const param = reqData[key] as string;
+//     delete reqData[key];
+//     return param;
+//   });
+
+//   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
+//   const pairs = Object.entries(reqData);
+//   for (const [key, val] of pairs) {
+//     if (val === "") {
+//       delete reqData[key];
+//       continue;
+//     }
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     const type = key.split(".").reduce((obj, key) => obj[key], op?.fields as any);
+//     if (type === "json") {
+//       reqData[key] = JSON.parse(val as string);
+//     }
+//   }
+
+//   const data = prefixedRecordIntoObject(reqData as Record<string, string>);
+
+//   updateResponse("", "Loading...");
+//   const response = await request($method as HttpMethod, endpoint as string, Object.keys(data).length > 0 ? data : undefined);
+//   updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
+// }
+
+// document.addEventListener("DOMContentLoaded", () => {
+//   document.querySelector("#operations-list")!.innerHTML = getHtmlOperations().join("");
+//   document.querySelectorAll(".operation-form").forEach((form) => form.addEventListener("submit", submitEventHandler));
+// });
+
+//allows for photo upload ////////////////////////////////////////////////////////////////////////////////////
+
+// async function submitEventHandler(e: Event) {
+//   e.preventDefault();
+//   const form = e.target as HTMLFormElement;
+//   const { $method, $endpoint, ...reqData } = Object.fromEntries(new FormData(form));
+
+//   // Replace :param with the actual value.
+//   const endpoint = ($endpoint as string).replace(/:(\w+)/g, (_, key) => {
+//     const param = reqData[key] as string;
+//     delete reqData[key];
+//     return param;
+//   });
+
+//   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
+//   const pairs = Object.entries(reqData);
+//   const hasFile = Object.values(reqData).some((value) => value instanceof File);
+
+//   // If there's a file, use FormData to handle file uploads
+//   let data: any;
+//   if (hasFile) {
+//     data = new FormData(form);
+//   } else {
+//     for (const [key, val] of pairs) {
+//       if (val === "") {
+//         delete reqData[key];
+//         continue;
+//       }
+//       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//       const type = key.split(".").reduce((obj, key) => obj[key], op?.fields as any);
+//       if (type === "json") {
+//         reqData[key] = JSON.parse(val as string);
+//       }
+//     }
+
+//     data = prefixedRecordIntoObject(reqData as Record<string, string>);
+//   }
+
+//   updateResponse("", "Loading...");
+//   const response = await request($method as HttpMethod, endpoint as string, data);
+//   updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
+// }
+
+// document.addEventListener("DOMContentLoaded", () => {
+//   document.querySelector("#operations-list")!.innerHTML = getHtmlOperations().join("");
+//   document.querySelectorAll(".operation-form").forEach((form) => form.addEventListener("submit", submitEventHandler));
+// });
+
+// // converts uploaded photo to base64 string ////////////////////////////////////////////////////////
 async function submitEventHandler(e: Event) {
   e.preventDefault();
   const form = e.target as HTMLFormElement;
@@ -216,22 +319,34 @@ async function submitEventHandler(e: Event) {
 
   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
   const pairs = Object.entries(reqData);
-  for (const [key, val] of pairs) {
-    if (val === "") {
-      delete reqData[key];
-      continue;
+  const hasFile = Object.values(reqData).some((value) => value instanceof File);
+
+  // If there's a file, convert the file to a base64 string
+  let data: any;
+  if (hasFile) {
+    const fileInput = pairs.find(([_, value]) => value instanceof File)?.[1] as File;
+    const base64String = await fileToBase64(fileInput); // <---- The base64 string is temporarily stored here
+    // console.log("Base64 String: ", base64String);
+    reqData.photo = base64String;
+    data = prefixedRecordIntoObject(reqData as Record<string, string>);
+  } else {
+    for (const [key, val] of pairs) {
+      if (val === "") {
+        delete reqData[key];
+        continue;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type = key.split(".").reduce((obj, key) => obj[key], op?.fields as any);
+      if (type === "json") {
+        reqData[key] = JSON.parse(val as string);
+      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const type = key.split(".").reduce((obj, key) => obj[key], op?.fields as any);
-    if (type === "json") {
-      reqData[key] = JSON.parse(val as string);
-    }
+
+    data = prefixedRecordIntoObject(reqData as Record<string, string>);
   }
 
-  const data = prefixedRecordIntoObject(reqData as Record<string, string>);
-
   updateResponse("", "Loading...");
-  const response = await request($method as HttpMethod, endpoint as string, Object.keys(data).length > 0 ? data : undefined);
+  const response = await request($method as HttpMethod, endpoint as string, data);
   updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
 }
 
@@ -239,3 +354,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelector("#operations-list")!.innerHTML = getHtmlOperations().join("");
   document.querySelectorAll(".operation-form").forEach((form) => form.addEventListener("submit", submitEventHandler));
 });
+
+// Helper function to convert file to base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+}

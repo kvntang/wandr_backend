@@ -86,10 +86,22 @@ class Routes {
     return Responses.posts(posts);
   }
 
+  // @Router.post("/posts")
+  // async createPost(session: SessionDoc, content: string, options?: PostOptions) {
+  //   const user = Sessioning.getUser(session);
+  //   const created = await Posting.create(user, content, options);
+  //   return { msg: created.msg, post: await Responses.post(created.post) };
+  // }
+
   @Router.post("/posts")
-  async createPost(session: SessionDoc, content: string, options?: PostOptions) {
+  async createPost(session: SessionDoc, content: string, options?: PostOptions, photo?: string) {
     const user = Sessioning.getUser(session);
-    const created = await Posting.create(user, content, options);
+
+    // console.log("Received Photo (Base64):", photo); // Log the photo to verify
+
+    // Pass the photo (Base64 string) along with content and options to the create method
+    const created = await Posting.create(user, content, options, photo);
+
     return { msg: created.msg, post: await Responses.post(created.post) };
   }
 
