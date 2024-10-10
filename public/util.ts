@@ -10,6 +10,9 @@ type Operation = {
   fields: Fields;
 };
 
+// At the top of util.ts
+declare const transformers: any;
+
 /**
  * This list of operations is used to generate the manual testing UI.
  */
@@ -112,7 +115,7 @@ const operations: Operation[] = [
     name: "Get Comments (empty for all)",
     endpoint: "/api/comments",
     method: "GET",
-    fields: { postId: "input" }, // Optional: Fetch by postId, or fetch all comments if not provided
+    fields: { postId: "input" },
   },
 
   //////////////////// Friend ////////////////////////////////////////
@@ -122,13 +125,19 @@ const operations: Operation[] = [
     name: "AutoCaption",
     endpoint: "/api/autocaptions",
     method: "POST",
-    fields: { postId: "input" }, // Optional: Fetch by postId, or fetch all comments if not provided
+    fields: { postId: "input" },
   },
   {
     name: "Get AutoCaptions (empty for all)",
     endpoint: "/api/autocaptions",
     method: "GET",
-    fields: { postId: "input" }, // Optional: Fetch by postId, or fetch all comments if not provided
+    fields: { postId: "input" },
+  },
+  {
+    name: "Update AutoCaptions",
+    endpoint: "/api/autocaptions",
+    method: "GET",
+    fields: { postId: "input" },
   },
   //
   // ...
@@ -173,20 +182,6 @@ async function request(method: HttpMethod, endpoint: string, params?: unknown) {
     };
   }
 }
-
-// function fieldsToHtml(fields: Record<string, Field>, indent = 0, prefix = ""): string {
-//   return Object.entries(fields)
-//     .map(([name, tag]) => {
-//       const htmlTag = tag === "json" ? "textarea" : tag;
-//       return `
-//         <div class="field" style="margin-left: ${indent}px">
-//           <label>${name}:
-//           ${typeof tag === "string" ? `<${htmlTag} name="${prefix}${name}"></${htmlTag}>` : fieldsToHtml(tag, indent + 10, prefix + name + ".")}
-//           </label>
-//         </div>`;
-//     })
-//     .join("");
-// }
 
 function fieldsToHtml(fields: Record<string, Field>, indent = 0, prefix = ""): string {
   return Object.entries(fields)
@@ -235,96 +230,46 @@ function prefixedRecordIntoObject(record: Record<string, string>) {
   }
   return obj;
 }
+//
+//
+//
+//
+async function createImageFromBase64(base64ImageData: string): Promise<HTMLImageElement> {
+  // Ensure the base64 string has the correct data URL prefix
+  if (!base64ImageData.startsWith("data:image")) {
+    // Assuming the image is in JPEG format; adjust the MIME type if necessary
+    base64ImageData = `data:image/jpeg;base64,${base64ImageData}`;
+  }
 
-//original
+  // Create an Image object from the base64 string
+  const img = new Image();
+  img.src = base64ImageData;
 
-// async function submitEventHandler(e: Event) {
-//   e.preventDefault();
-//   const form = e.target as HTMLFormElement;
-//   const { $method, $endpoint, ...reqData } = Object.fromEntries(new FormData(form));
+  // Wait for the image to load
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = (error) => reject(error);
+  });
 
-//   // Replace :param with the actual value.
-//   const endpoint = ($endpoint as string).replace(/:(\w+)/g, (_, key) => {
-//     const param = reqData[key] as string;
-//     delete reqData[key];
-//     return param;
-//   });
-
-//   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
-//   const pairs = Object.entries(reqData);
-//   for (const [key, val] of pairs) {
-//     if (val === "") {
-//       delete reqData[key];
-//       continue;
-//     }
-//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//     const type = key.split(".").reduce((obj, key) => obj[key], op?.fields as any);
-//     if (type === "json") {
-//       reqData[key] = JSON.parse(val as string);
-//     }
-//   }
-
-//   const data = prefixedRecordIntoObject(reqData as Record<string, string>);
-
-//   updateResponse("", "Loading...");
-//   const response = await request($method as HttpMethod, endpoint as string, Object.keys(data).length > 0 ? data : undefined);
-//   updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
-// }
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   document.querySelector("#operations-list")!.innerHTML = getHtmlOperations().join("");
-//   document.querySelectorAll(".operation-form").forEach((form) => form.addEventListener("submit", submitEventHandler));
-// });
-
-//allows for photo upload ////////////////////////////////////////////////////////////////////////////////////
-
-// async function submitEventHandler(e: Event) {
-//   e.preventDefault();
-//   const form = e.target as HTMLFormElement;
-//   const { $method, $endpoint, ...reqData } = Object.fromEntries(new FormData(form));
-
-//   // Replace :param with the actual value.
-//   const endpoint = ($endpoint as string).replace(/:(\w+)/g, (_, key) => {
-//     const param = reqData[key] as string;
-//     delete reqData[key];
-//     return param;
-//   });
-
-//   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
-//   const pairs = Object.entries(reqData);
-//   const hasFile = Object.values(reqData).some((value) => value instanceof File);
-
-//   // If there's a file, use FormData to handle file uploads
-//   let data: any;
-//   if (hasFile) {
-//     data = new FormData(form);
-//   } else {
-//     for (const [key, val] of pairs) {
-//       if (val === "") {
-//         delete reqData[key];
-//         continue;
-//       }
-//       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//       const type = key.split(".").reduce((obj, key) => obj[key], op?.fields as any);
-//       if (type === "json") {
-//         reqData[key] = JSON.parse(val as string);
-//       }
-//     }
-
-//     data = prefixedRecordIntoObject(reqData as Record<string, string>);
-//   }
-
-//   updateResponse("", "Loading...");
-//   const response = await request($method as HttpMethod, endpoint as string, data);
-//   updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
-// }
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   document.querySelector("#operations-list")!.innerHTML = getHtmlOperations().join("");
-//   document.querySelectorAll(".operation-form").forEach((form) => form.addEventListener("submit", submitEventHandler));
-// });
-
-// // converts uploaded photo to base64 string ////////////////////////////////////////////////////////
+  return img;
+}
+//
+// Helper function to convert file to base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+}
+//
+//
+//
+//
+//
+//
+//
 async function submitEventHandler(e: Event) {
   e.preventDefault();
   const form = e.target as HTMLFormElement;
@@ -338,6 +283,59 @@ async function submitEventHandler(e: Event) {
   });
 
   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
+
+  // Check if the operation is AutoCaption
+  if (op?.name === "AutoCaption") {
+    const postId = reqData["postId"] as string;
+
+    if (!postId) {
+      alert("Please enter a postId.");
+      return;
+    }
+
+    try {
+      // Inform the user that caption generation is starting
+      updateResponse("", "Generating caption...");
+
+      // Fetch the post to get the image
+      const response = await fetch(`/api/posts/single/${postId}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching post: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const post = Array.isArray(data) && data.length > 0 ? data[0] : data;
+
+      if (!post || !post.photo) {
+        alert("Post not found or does not have a photo.");
+        updateResponse("", ""); // Clear loading message
+        return;
+      }
+
+      // Extract the base64 image data
+      let imageData = post.photo as string;
+      imageData = imageData.replace(/^data:image\/[a-z]+;base64,/, ""); // Remove any data URL prefix if present
+      imageData = `data:image/jpeg;base64,${imageData}`; // Ensure it has the correct data URL prefix
+
+      // Create Image object using the extracted function
+      const img = await createImageFromBase64(imageData);
+
+      // Generate caption using transformer.js
+      const caption = await generateCaptionFromImage(img);
+
+      // Include the generated caption in the request data
+      reqData["caption"] = caption;
+
+      // Clear the loading message
+      updateResponse("", "");
+    } catch (error) {
+      console.error("Error generating caption:", error);
+      alert("Error generating caption. See console for details.");
+      updateResponse("", ""); // Clear loading message
+      return;
+    }
+  }
+
+  //
   const pairs = Object.entries(reqData);
   const hasFile = Object.values(reqData).some((value) => value instanceof File);
 
@@ -361,7 +359,6 @@ async function submitEventHandler(e: Event) {
         reqData[key] = JSON.parse(val as string);
       }
     }
-
     data = prefixedRecordIntoObject(reqData as Record<string, string>);
   }
 
@@ -377,23 +374,27 @@ async function submitEventHandler(e: Event) {
     updateResponse(response.$statusCode.toString(), JSON.stringify(response.$response, null, 2));
   }
 }
+//
+//
+//
+//
+//
 
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelector("#operations-list")!.innerHTML = getHtmlOperations().join("");
   document.querySelectorAll(".operation-form").forEach((form) => form.addEventListener("submit", submitEventHandler));
 });
 
-// Helper function to convert file to base64
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-}
+//
+//
+//
+//
+//
+//
+//
+//
 
-function displayResponse(response: any) {
+async function displayResponse(response: any) {
   console.log("Response received:", response); // Log the response to inspect the structure
 
   const pictureContainer = document.querySelector("#picture-container");
@@ -403,14 +404,9 @@ function displayResponse(response: any) {
     return;
   }
 
-  // Clear previous response
-  pictureContainer.innerHTML = "";
-
-  // Check if the response is an array and access the first post
-  const post = Array.isArray(response) && response.length > 0 ? response[0] : null;
-
-  // Create a div to display the content and photo
-  const contentDiv = document.createElement("div");
+  pictureContainer.innerHTML = ""; // Clear previous response
+  const post = Array.isArray(response) && response.length > 0 ? response[0] : null; // Check if the response is an array and access the first post
+  const contentDiv = document.createElement("div"); // Create a div to display the content and photo
 
   if (!post) {
     contentDiv.innerHTML = "<p>No post available.</p>";
@@ -422,8 +418,7 @@ function displayResponse(response: any) {
 
   // If there's a photo, display it
   if (post.photo) {
-    const img = document.createElement("img");
-    img.src = post.photo; // Directly use the base64 string with the "data:image/..." prefix
+    const img = await createImageFromBase64(post.photo);
     img.alt = "Uploaded Image";
     img.style.maxWidth = "300px"; // You can adjust the size
     contentDiv.appendChild(img);
@@ -433,4 +428,52 @@ function displayResponse(response: any) {
 
   // Append the contentDiv to the responseContainer
   pictureContainer.appendChild(contentDiv);
+}
+
+//
+//
+//
+//
+//
+//
+//
+
+// import { pipeline } from "@xenova/transformers";
+// let cachedCaptioner: any = null;
+
+// async function generateCaptionFromImage(img: HTMLImageElement): Promise<string> {
+//   if (!cachedCaptioner) {
+//     console.log("Loading the captioning model for the first time. This may take a few minutes.");
+//     cachedCaptioner = await pipeline("image-to-text", "Salesforce/blip-image-captioning-base");
+//   }
+//   const captioner = cachedCaptioner;
+
+//   const result = await captioner(img);
+//   const caption = result[0].generated_text;
+
+//   return caption;
+// }
+
+let cachedCaptioner: any = null;
+
+async function generateCaptionFromImage(img: HTMLImageElement): Promise<string> {
+  try {
+    if (!cachedCaptioner) {
+      console.log("Attempting to load the captioning model...");
+      cachedCaptioner = await transformers.pipeline("image-to-text", "Salesforce/blip-image-captioning-base");
+      console.log("Captioning model loaded successfully.");
+    }
+
+    const captioner = cachedCaptioner;
+
+    console.log("Generating caption...");
+    const result = await captioner(img);
+    const caption = result[0].generated_text;
+    console.log("Caption generated:", caption);
+
+    return caption;
+  } catch (error) {
+    console.error("Error generating caption:", error);
+    throw error;
+  }
 }

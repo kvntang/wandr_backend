@@ -35,12 +35,6 @@ export default class AutoCaptioningConcept {
     return await this.captions.readMany({ postId }, { sort: { _id: -1 } });
   }
 
-  async update(_id: ObjectId, caption?: string) {
-    // Only update the caption content
-    await this.captions.partialUpdateOne({ _id }, { caption });
-    return { msg: "Auto-caption successfully updated!" };
-  }
-
   async delete(_id: ObjectId) {
     await this.captions.deleteOne({ _id });
     return { msg: "Auto-caption deleted successfully!" };
@@ -51,5 +45,11 @@ export default class AutoCaptioningConcept {
     if (!caption) {
       throw new NotFoundError(`Auto-caption ${_id} does not exist!`);
     }
+  }
+
+  async update(_id: ObjectId, caption?: string) {
+    // Update only the content of the comment
+    await this.captions.partialUpdateOne({ _id }, { caption });
+    return { msg: "Comment successfully updated!" };
   }
 }

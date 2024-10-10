@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Commenting, Friending, Posting, Sessioning } from "./app";
+import { Authing, AutoCaptioning, Commenting, Friending, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -214,6 +214,37 @@ class Routes {
     const oid = new ObjectId(id);
     await Commenting.assertAuthorIsUser(oid, user);
     return await Commenting.delete(oid);
+  }
+
+  //////////////////// Auto Caption ////////////////////////////////////////
+  @Router.post("/autocaptions")
+  async createAutoCaption(postId: string, caption: string) {
+    const postOid = new ObjectId(postId);
+    await Posting.assertPostExist(postOid); // Ensure the post exists
+    const created = await AutoCaptioning.create(postOid, caption);
+    return { msg: created.msg };
+  }
+
+  @Router.get("/autocaptions")
+  @Router.validate(z.object({ postId: z.string().optional() }))
+  async getAutoCaptions(postId?: string) {
+    let autoCaptions;
+    if (postId) {
+      // get the one
+      const postOid = new ObjectId(postId);
+      autoCaptions = await AutoCaptioning.getByPost(postOid);
+    } else {
+      //get all
+      autoCaptions = await AutoCaptioning.getAllCaptions();
+    }
+    return autoCaptions;
+  }
+
+  @Router.patch("/autocaptions/:id")
+  async updateAutoCaption(postId: string, caption: string) {
+    const oid = new ObjectId(postId);
+    await AutoCaptioning.assertCaptionExists(oid);
+    return await AutoCaptioning.update(oid, caption);
   }
 }
 
