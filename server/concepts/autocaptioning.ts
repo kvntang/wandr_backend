@@ -50,6 +50,6 @@ export default class AutoCaptioningConcept {
   async update(_id: ObjectId, caption?: string) {
     // Update only the content of the comment
     await this.captions.partialUpdateOne({ _id }, { caption });
-    return { msg: "Comment successfully updated!" };
+    return { msg: "Auto-caption successfully updated!" };
   }
 }

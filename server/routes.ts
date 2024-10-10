@@ -247,27 +247,41 @@ class Routes {
     return { msg: created.msg, caption: caption };
   }
 
-  // @Router.get("/autocaptions")
-  // @Router.validate(z.object({ postId: z.string().optional() }))
-  // async getAutoCaptions(postId?: string) {
-  //   let autoCaptions;
-  //   if (postId) {
-  //     // get the one
-  //     const postOid = new ObjectId(postId);
-  //     autoCaptions = await AutoCaptioning.getByPost(postOid);
-  //   } else {
-  //     //get all
-  //     autoCaptions = await AutoCaptioning.getAllCaptions();
-  //   }
-  //   return autoCaptions;
-  // }
+  @Router.get("/autocaptions")
+  @Router.validate(z.object({ postId: z.string().optional() }))
+  async getAutoCaptions(postId?: string) {
+    let autoCaptions;
+    if (postId) {
+      // get the one
+      const postOid = new ObjectId(postId);
+      autoCaptions = await AutoCaptioning.getByPost(postOid);
+    } else {
+      //get all
+      autoCaptions = await AutoCaptioning.getAllCaptions();
+    }
+    return autoCaptions;
+  }
 
-  // @Router.patch("/autocaptions/:id")
-  // async updateAutoCaption(postId: string, caption: string) {
-  //   const oid = new ObjectId(postId);
-  //   await AutoCaptioning.assertCaptionExists(oid);
-  //   return await AutoCaptioning.update(oid, caption);
-  // }
+  @Router.patch("/autocaptions/update/:postid")
+  async updateAutoCaption(postid: string) {
+    const postOid = new ObjectId(postid);
+    await Posting.assertPostExist(postOid); // Ensure the post exists
+
+    //get the photo
+    const post = await Posting.getByPost(postOid);
+    let imageData = post[0].photo as string;
+    imageData = imageData.replace(/^data:image\/[a-z]+;base64,/, ""); // Remove data URL prefix if present
+    const imageBuffer = Buffer.from(imageData, "base64");
+
+    // Generate caption using the Hugging Face Inference API
+    console.log("regenerating caption...");
+    const caption = await generateCaptionFromImageBuffer(imageBuffer);
+
+    // Store the caption in MongoDB
+    const created = await AutoCaptioning.update(postOid, caption);
+
+    return { msg: created.msg, caption: caption };
+  }
 }
 
 async function generateCaptionFromImageBuffer(imageBuffer: Buffer): Promise<string> {

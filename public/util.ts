@@ -122,7 +122,7 @@ const operations: Operation[] = [
 
   //////////////////// Auto Captioning ////////////////////////////////////
   {
-    name: "AutoCaption",
+    name: "Generate AutoCaption",
     endpoint: "/api/autocaptions",
     method: "POST",
     fields: { postId: "input" },
@@ -135,9 +135,9 @@ const operations: Operation[] = [
   },
   {
     name: "Update AutoCaptions",
-    endpoint: "/api/autocaptions",
-    method: "GET",
-    fields: { postId: "input" },
+    endpoint: "/api/autocaptions/update/:postid",
+    method: "PATCH",
+    fields: { postid: "input" },
   },
   //
   // ...
@@ -284,57 +284,6 @@ async function submitEventHandler(e: Event) {
 
   const op = operations.find((op) => op.endpoint === $endpoint && op.method === $method);
 
-  // // Check if the operation is AutoCaption
-  // if (op?.name === "AutoCaption") {
-  //   const postId = reqData["postId"] as string;
-
-  //   if (!postId) {
-  //     alert("Please enter a postId.");
-  //     return;
-  //   }
-
-  //   try {
-  //     // Inform the user that caption generation is starting
-  //     updateResponse("", "Generating caption...");
-
-  //     // Fetch the post to get the image
-  //     const response = await fetch(`/api/posts/single/${postId}`);
-  //     if (!response.ok) {
-  //       throw new Error(`Error fetching post: ${response.statusText}`);
-  //     }
-  //     const data = await response.json();
-  //     const post = Array.isArray(data) && data.length > 0 ? data[0] : data;
-
-  //     if (!post || !post.photo) {
-  //       alert("Post not found or does not have a photo.");
-  //       updateResponse("", ""); // Clear loading message
-  //       return;
-  //     }
-
-  //     // Extract the base64 image data
-  //     let imageData = post.photo as string;
-  //     imageData = imageData.replace(/^data:image\/[a-z]+;base64,/, ""); // Remove any data URL prefix if present
-  //     imageData = `data:image/jpeg;base64,${imageData}`; // Ensure it has the correct data URL prefix
-
-  //     // Create Image object using the extracted function
-  //     const img = await createImageFromBase64(imageData);
-
-  //     // Generate caption using transformer.js
-  //     const caption = await generateCaptionFromImage(img);
-
-  //     // Include the generated caption in the request data
-  //     reqData["caption"] = caption;
-
-  //     // Clear the loading message
-  //     updateResponse("", "");
-  //   } catch (error) {
-  //     console.error("Error generating caption:", error);
-  //     alert("Error generating caption. See console for details.");
-  //     updateResponse("", ""); // Clear loading message
-  //     return;
-  //   }
-  // }
-
   //
   const pairs = Object.entries(reqData);
   const hasFile = Object.values(reqData).some((value) => value instanceof File);
@@ -429,79 +378,3 @@ async function displayResponse(response: any) {
   // Append the contentDiv to the responseContainer
   pictureContainer.appendChild(contentDiv);
 }
-
-//
-//
-//
-//
-//
-//
-//
-
-// import { pipeline } from "@xenova/transformers";
-// let cachedCaptioner: any = null;
-
-// async function generateCaptionFromImage(img: HTMLImageElement): Promise<string> {
-//   if (!cachedCaptioner) {
-//     console.log("Loading the captioning model for the first time. This may take a few minutes.");
-//     cachedCaptioner = await pipeline("image-to-text", "Salesforce/blip-image-captioning-base");
-//   }
-//   const captioner = cachedCaptioner;
-
-//   const result = await captioner(img);
-//   const caption = result[0].generated_text;
-
-//   return caption;
-// }
-
-// let cachedCaptioner: any = null;
-
-// async function generateCaptionFromImage(img: HTMLImageElement): Promise<string> {
-//   try {
-//     if (!cachedCaptioner) {
-//       console.log("Attempting to load the captioning model...");
-//       cachedCaptioner = await transformers.pipeline("image-to-text", "Salesforce/blip-image-captioning-base");
-//       console.log("Captioning model loaded successfully.");
-//     }
-
-//     const captioner = cachedCaptioner;
-
-//     console.log("Generating caption...");
-//     const result = await captioner(img);
-//     const caption = result[0].generated_text;
-//     console.log("Caption generated:", caption);
-
-//     return caption;
-//   } catch (error) {
-//     console.error("Error generating caption:", error);
-//     throw error;
-//   }
-// }
-
-/**
- * Generate caption from an image.
- */
-// async function generateCaptionFromBase64(imageBase64: string): Promise<string> {
-//   try {
-//     const response = await fetch("/api/generate-caption", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ imageBase64 }),
-//     });
-
-//     if (!response.ok) {
-//       throw new Error(`Server error: ${response.statusText}`);
-//     }
-
-//     const data = await response.json();
-//     const caption = data.caption;
-
-//     console.log("Caption generated:", caption);
-//     return caption;
-//   } catch (error) {
-//     console.error("Error generating caption:", error);
-//     throw error;
-//   }
-// }
