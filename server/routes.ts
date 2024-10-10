@@ -289,6 +289,93 @@ class Routes {
 
     return { msg: created.msg, caption: caption };
   }
+
+  //////////////////// Suggestions ////////////////////////////////////////
+  @Router.post("/suggestions")
+  async getSuggestions(session: SessionDoc, postId: string) {
+    // Ensure the user is logged in
+    const userId = Sessioning.getUser(session);
+
+    const postOid = new ObjectId(postId);
+    await Posting.assertPostExist(postOid); // Ensure the post exists
+
+    // Get the target caption
+    const targetCaptionDoc = await AutoCaptioning.getByPost(postOid);
+    const targetCaption = targetCaptionDoc[0].caption;
+
+    //create array of captions from all other post
+    const allCaptionsDocs = await AutoCaptioning.getAllCaptions();
+    const otherCaptionsDocs = allCaptionsDocs.filter((doc) => !doc.postId.equals(postOid));
+
+    if (otherCaptionsDocs.length === 0) {
+      return { suggestions: [] }; // No other captions available
+    }
+
+    // Prepare the inputs for the similarity API
+    const sentences = otherCaptionsDocs.map((doc) => doc.caption);
+
+    // Get similarity scores
+    const similarityScores = await getSimilarityScores(targetCaption, sentences);
+
+    // Combine posts with their similarity scores
+    const postsWithScores = otherCaptionsDocs.map((doc, idx) => ({
+      postId: doc.postId,
+      caption: doc.caption,
+      score: similarityScores[idx],
+    }));
+
+    // Sort posts by similarity score in descending order
+    postsWithScores.sort((a, b) => b.score - a.score);
+
+    // Get user's stepSize
+    const user = await Authing.getUserById(userId);
+    let stepSize = parseInt(user.stepSize, 10);
+    if (isNaN(stepSize) || stepSize < 1) {
+      stepSize = 1; // Default to 1 if not set or invalid
+    }
+
+    // Generate the final suggestion list
+    const suggestions = getSuggestionList(postsWithScores, stepSize); //i think this is just going to be a list of captions
+
+    // return suggestion list
+    return suggestions;
+  }
+}
+
+async function getSimilarityScores(target: string, sentences: string[]): Promise<number[]> {
+  try {
+    const model = "sentence-transformers/msmarco-distilbert-base-tas-b";
+
+    const result = await inference.sentenceSimilarity({
+      model,
+      inputs: {
+        source_sentence: target,
+        sentences: sentences,
+      },
+    });
+
+    return result; // This should be an array of similarity scores
+  } catch (error) {
+    console.error("Error computing similarity scores:", error);
+    throw error;
+  }
+}
+
+function getSuggestionList(sortedPosts: { postId: ObjectId; caption: string; score: number }[], stepSize: number): { postId: ObjectId; caption: string; score: number }[] {
+  const suggestions = [];
+  const maxSuggestions = 10;
+
+  if (stepSize <= 1) {
+    // Take the top N posts
+    suggestions.push(...sortedPosts.slice(0, maxSuggestions));
+  } else {
+    // Skip posts according to stepSize
+    for (let i = 0; i < sortedPosts.length && suggestions.length < maxSuggestions; i += stepSize) {
+      suggestions.push(sortedPosts[i]);
+    }
+  }
+
+  return suggestions;
 }
 
 async function generateCaptionFromImageBuffer(imageBuffer: Buffer): Promise<string> {
@@ -304,8 +391,6 @@ async function generateCaptionFromImageBuffer(imageBuffer: Buffer): Promise<stri
     console.error("Error generating caption from image buffer:", error);
     throw error;
   }
-
-  ////////////////////////////////////////////////////////////////////////
 }
 
 /** The web app. */
