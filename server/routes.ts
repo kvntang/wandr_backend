@@ -80,13 +80,20 @@ class Routes {
     return await Authing.delete(user);
   }
 
+  @Router.patch("/users/step")
+  async updateStep(session: SessionDoc, stepSize: string) {
+    const userId = Sessioning.getUser(session);
+    const result = await Authing.updateStepSize(userId, stepSize);
+    return result;
+  }
+
   //////////////////// Post ////////////////////////////////////////
   @Router.get("/posts")
-  @Router.validate(z.object({ author: z.string().optional() }))
-  async getPosts(author?: string) {
+  @Router.validate(z.object({ username: z.string().optional() }))
+  async getPosts(username?: string) {
     let posts;
-    if (author) {
-      const id = (await Authing.getUserByUsername(author))._id;
+    if (username) {
+      const id = (await Authing.getUserByUsername(username))._id;
       posts = await Posting.getByAuthor(id);
     } else {
       posts = await Posting.getPosts();
@@ -297,6 +304,8 @@ async function generateCaptionFromImageBuffer(imageBuffer: Buffer): Promise<stri
     console.error("Error generating caption from image buffer:", error);
     throw error;
   }
+
+  ////////////////////////////////////////////////////////////////////////
 }
 
 /** The web app. */

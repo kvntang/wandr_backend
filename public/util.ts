@@ -61,12 +61,19 @@ const operations: Operation[] = [
     method: "GET",
     fields: { username: "input" },
   },
+  {
+    name: "Set Step Size (type a number between 1-5)",
+    endpoint: "/api/users/step",
+    method: "PATCH",
+    fields: { stepSize: "input" },
+  },
+
   //////////////////// Post ////////////////////////////////////////
   {
     name: "Get Posts (empty for all)",
     endpoint: "/api/posts",
     method: "GET",
-    fields: { author: "input" },
+    fields: { username: "input" },
   },
   {
     name: "See Post Photo",
@@ -139,6 +146,10 @@ const operations: Operation[] = [
     method: "PATCH",
     fields: { postid: "input" },
   },
+
+  //////////////////// Stepping ////////////////////////////////////
+
+  //////////////////// Suggesting ////////////////////////////////////
   //
   // ...
   //
