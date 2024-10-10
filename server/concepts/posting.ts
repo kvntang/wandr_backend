@@ -55,6 +55,12 @@ export default class PostingConcept {
     return post ? [post] : []; // Wrap the post in an array or return an empty array
   }
 
+  // async getByPost(_id: ObjectId): Promise<PostDoc | null> {
+  //   // Fetch a single post by its ObjectId
+  //   const post = await this.posts.readOne({ _id });
+  //   return post; // Returns the PostDoc or null
+  // }
+
   async update(_id: ObjectId, content?: string, options?: PostOptions) {
     // Note that if content or options is undefined, those fields will *not* be updated
     // since undefined values for partialUpdateOne are ignored.

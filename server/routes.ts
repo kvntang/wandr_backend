@@ -9,6 +9,14 @@ import Responses from "./responses";
 
 import { z } from "zod";
 
+//huggingface API stuff
+import { HfInference } from "@huggingface/inference";
+import * as dotenv from "dotenv";
+// Initialize dotenv to load environment variables
+dotenv.config();
+// Create an instance of HfInference with your API token
+const inference = new HfInference(process.env.HUGGING_FACE_API_TOKEN);
+
 /**
  * Web server routes for the app. Implements synchronizations between concepts.
  */
@@ -218,33 +226,62 @@ class Routes {
 
   //////////////////// Auto Caption ////////////////////////////////////////
   @Router.post("/autocaptions")
-  async createAutoCaption(postId: string, caption: string) {
+  async createAutoCaption(postId: string) {
     const postOid = new ObjectId(postId);
     await Posting.assertPostExist(postOid); // Ensure the post exists
+
+    //get the photo
+    const post = await Posting.getByPost(postOid);
+
+    let imageData = post[0].photo as string;
+    imageData = imageData.replace(/^data:image\/[a-z]+;base64,/, ""); // Remove data URL prefix if present
+    const imageBuffer = Buffer.from(imageData, "base64");
+
+    // Generate caption using the Hugging Face Inference API
+    console.log("generating caption...");
+    const caption = await generateCaptionFromImageBuffer(imageBuffer);
+
+    // Store the caption in MongoDB
     const created = await AutoCaptioning.create(postOid, caption);
-    return { msg: created.msg };
+
+    return { msg: created.msg, caption: caption };
   }
 
-  @Router.get("/autocaptions")
-  @Router.validate(z.object({ postId: z.string().optional() }))
-  async getAutoCaptions(postId?: string) {
-    let autoCaptions;
-    if (postId) {
-      // get the one
-      const postOid = new ObjectId(postId);
-      autoCaptions = await AutoCaptioning.getByPost(postOid);
-    } else {
-      //get all
-      autoCaptions = await AutoCaptioning.getAllCaptions();
-    }
-    return autoCaptions;
-  }
+  // @Router.get("/autocaptions")
+  // @Router.validate(z.object({ postId: z.string().optional() }))
+  // async getAutoCaptions(postId?: string) {
+  //   let autoCaptions;
+  //   if (postId) {
+  //     // get the one
+  //     const postOid = new ObjectId(postId);
+  //     autoCaptions = await AutoCaptioning.getByPost(postOid);
+  //   } else {
+  //     //get all
+  //     autoCaptions = await AutoCaptioning.getAllCaptions();
+  //   }
+  //   return autoCaptions;
+  // }
 
-  @Router.patch("/autocaptions/:id")
-  async updateAutoCaption(postId: string, caption: string) {
-    const oid = new ObjectId(postId);
-    await AutoCaptioning.assertCaptionExists(oid);
-    return await AutoCaptioning.update(oid, caption);
+  // @Router.patch("/autocaptions/:id")
+  // async updateAutoCaption(postId: string, caption: string) {
+  //   const oid = new ObjectId(postId);
+  //   await AutoCaptioning.assertCaptionExists(oid);
+  //   return await AutoCaptioning.update(oid, caption);
+  // }
+}
+
+async function generateCaptionFromImageBuffer(imageBuffer: Buffer): Promise<string> {
+  try {
+    // Use the inference API to generate the caption
+    const result = await inference.imageToText({
+      data: imageBuffer,
+      model: "nlpconnect/vit-gpt2-image-captioning",
+    });
+
+    return result.generated_text;
+  } catch (error) {
+    console.error("Error generating caption from image buffer:", error);
+    throw error;
   }
 }
 

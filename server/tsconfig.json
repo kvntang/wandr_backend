@@ -2,8 +2,6 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "CommonJS",
-    // "target": "ES5",
-    // "module": "none",
     "moduleResolution": "Node",
 
     "sourceMap": true,
