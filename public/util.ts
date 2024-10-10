@@ -147,14 +147,10 @@ const operations: Operation[] = [
     fields: { postid: "input" },
   },
 
+  //////////////////// Stepping ////////////////////////////////////
+
   //////////////////// Suggesting ////////////////////////////////////
   //
-  {
-    name: "Generate Suggestion List",
-    endpoint: "/api/suggestions",
-    method: "POST",
-    fields: { postId: "input" },
-  },
   // ...
   //
 ];
