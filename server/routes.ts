@@ -237,6 +237,9 @@ class Routes {
     const postOid = new ObjectId(postId);
     await Posting.assertPostExist(postOid); // Ensure the post exists
 
+    //need to check if a caption already has postid
+    await AutoCaptioning.assertCaptionExists(postOid);
+
     //get the photo
     const post = await Posting.getByPost(postOid);
 

@@ -40,10 +40,10 @@ export default class AutoCaptioningConcept {
     return { msg: "Auto-caption deleted successfully!" };
   }
 
-  async assertCaptionExists(_id: ObjectId) {
-    const caption = await this.captions.readOne({ _id });
-    if (!caption) {
-      throw new NotFoundError(`Auto-caption ${_id} does not exist!`);
+  async assertCaptionExists(postId: ObjectId) {
+    const caption = await this.captions.readOne({ postId });
+    if (caption) {
+      throw new NotFoundError(`${postId} already has a caption associated with it!`);
     }
   }
 
